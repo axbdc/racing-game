@@ -3,15 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Racing Markerless Pro</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <title>AR Racing Pro - MindAR Fix</title>
+    <!-- Bibliotecas MindAR e A-Frame (Versões estáveis) -->
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { margin: 0; overflow: hidden; font-family: sans-serif; background: #000; touch-action: none; }
-        canvas { display: block; }
         
-        #ui-layer { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
+        /* Camada de UI superior */
+        #ui-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            pointer-events: none;
+        }
 
         #intro-screen {
             position: absolute; inset: 0;
@@ -32,11 +38,14 @@
 
         #ui-controls { position: absolute; inset: 0; display: none; pointer-events: none; }
 
-        #status-indicator {
+        #scan-guide {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 12px 24px;
             border-radius: 30px; font-weight: bold; white-space: nowrap; display: none;
         }
+
+        /* Ocultar elementos do A-Frame */
+        .a-enter-vr { display: none; }
     </style>
 </head>
 <body>
@@ -44,21 +53,21 @@
     <div id="ui-layer">
         <!-- ECRÃ INICIAL -->
         <div id="intro-screen">
-            <h1 class="text-5xl font-black italic mb-2 tracking-tighter">AR RACING WORLD</h1>
-            <p class="mb-8 text-gray-300">Sem marcadores. Apenas a tua mesa e o carro.</p>
+            <h1 class="text-5xl font-black italic mb-2 tracking-tighter text-red-600">MIND AR RACING</h1>
+            <p class="mb-8 text-gray-300">Compatível com iOS e Android. Usa o alvo de imagem para jogar.</p>
             <button id="btn-start" class="bg-red-600 text-white px-12 py-5 rounded-full font-bold text-2xl active:scale-95 shadow-2xl mb-4">
                 INICIAR JOGO
             </button>
-            <p class="text-[10px] opacity-50 max-w-xs">Nota: Requer Android (Chrome) e HTTPS. No iPhone, use o modo Simulação se o AR falhar.</p>
+            <p class="text-[10px] opacity-60 max-w-xs uppercase tracking-widest text-white">Tecnologia MindAR - Fix de Buffer Aplicado</p>
         </div>
 
-        <!-- MENSAGENS -->
-        <div id="status-indicator">Move o telemóvel para detetar superfícies...</div>
+        <!-- GUIA DE SCAN -->
+        <div id="scan-guide">Aponta para o cartão de exemplo</div>
 
-        <!-- CONTROLOS (HORIZONTAL) -->
+        <!-- CONTROLOS -->
         <div id="ui-controls">
             <!-- Esquerda: Setas -->
-            <div class="absolute bottom-8 left-8 flex gap-4">
+            <div class="absolute bottom-10 left-10 flex gap-4">
                 <div id="btn-left" class="joy-btn w-20 h-20">
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
                 </div>
@@ -67,238 +76,139 @@
                 </div>
             </div>
             <!-- Direita: Pedais -->
-            <div class="absolute bottom-8 right-8 flex gap-6 items-end">
+            <div class="absolute bottom-10 right-10 flex gap-6 items-end">
                 <div id="btn-brake" class="joy-btn w-24 h-24 flex-col text-xs font-bold text-red-400">TRAVAR</div>
-                <div id="btn-gas" class="joy-btn w-28 h-36 flex-col text-sm font-bold bg-green-600/20 text-green-400">ACELERAR</div>
+                <div id="btn-gas" class="joy-btn w-28 h-36 flex-col text-sm font-bold bg-green-600/20 text-green-400">GAS</div>
             </div>
         </div>
     </div>
 
+    <!-- CENA AR -->
+    <!-- FIX: Usar o link do repositório oficial que é mais estável para o ficheiro .mind -->
+    <a-scene 
+        mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.mind; autoStart: false; uiScanning: no;" 
+        embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+        
+        <a-assets>
+            <a-asset-item id="carModel" src="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/ToyCar/glTF-Binary/ToyCar.glb"></a-asset-item>
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <a-entity mindar-image-target="targetIndex: 0" id="game-anchor">
+            <!-- Pista -->
+            <a-entity id="track-pivot">
+                <a-circle rotation="-90 0 0" radius="1.5" color="#111" opacity="0.9"></a-circle>
+                <a-ring rotation="-90 0 0" radius-inner="1.45" radius-outer="1.5" color="red"></a-ring>
+            </a-entity>
+
+            <!-- Carro -->
+            <a-entity id="car-entity" position="0 0 0">
+                <a-entity gltf-model="#carModel" scale="0.15 0.15 0.15" rotation="0 180 0"></a-entity>
+            </a-entity>
+        </a-entity>
+    </a-scene>
+
     <script>
-        // --- CONFIGURAÇÃO DE LINKS ---
-        const ASSETS = {
-            car: 'car.glb',
-            track: 'circuito.glb' // Adiciona o teu circuito GLB aqui
-        };
-
-        let scene, camera, renderer, reticle, carModel, trackModel;
-        let hitTestSource = null;
-        let hitTestSourceRequested = false;
-        let isPlaced = false;
-        let collidables = [];
-
+        // Estado do carro e inputs
         const carState = {
-            speed: 0, rotation: 0,
-            maxSpeed: 0.05, acceleration: 0.002, friction: 0.96,
+            speed: 0,
+            rotation: 0,
+            maxSpeed: 0.04,
+            acceleration: 0.0015,
+            friction: 0.96,
             inputs: { forward: false, backward: false, left: false, right: false }
         };
 
-        const raycasterDown = new THREE.Raycaster();
-        const raycasterFront = new THREE.Raycaster();
+        const sceneEl = document.querySelector('a-scene');
+        const carEntity = document.querySelector('#car-entity');
+        const anchor = document.querySelector('#game-anchor');
+        const uiControls = document.querySelector('#ui-controls');
+        const scanGuide = document.querySelector('#scan-guide');
 
-        init();
-
-        function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-            scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1));
-            const sun = new THREE.DirectionalLight(0xffffff, 1);
-            sun.position.set(5, 10, 7);
-            scene.add(sun);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.xr.enabled = true;
-            document.body.appendChild(renderer.domElement);
-
-            // Retícula (O alvo que aparece no chão)
-            reticle = new THREE.Mesh(
-                new THREE.RingGeometry(0.08, 0.1, 32).rotateX(-Math.PI / 2),
-                new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-            );
-            reticle.matrixAutoUpdate = false;
-            reticle.visible = false;
-            scene.add(reticle);
-
-            loadModels();
-            setupEvents();
-        }
-
-        function loadModels() {
-            const loader = new THREE.GLTFLoader();
+        // Inicialização manual para evitar conflitos de carregamento
+        document.getElementById('btn-start').addEventListener('click', () => {
+            document.getElementById('intro-screen').style.display = 'none';
+            scanGuide.style.display = 'block';
             
-            // Carregar Carro
-            loader.load(ASSETS.car, (gltf) => {
-                carModel = gltf.scene;
-                carModel.scale.set(0.1, 0.1, 0.1);
-            });
-
-            // Carregar Pista
-            if (ASSETS.track) {
-                loader.load(ASSETS.track, (gltf) => {
-                    trackModel = gltf.scene;
-                    trackModel.traverse(node => {
-                        if (node.isMesh && (node.name.includes("Wall") || node.name.includes("Barrier"))) {
-                            collidables.push(node);
-                        }
-                    });
-                });
-            }
-        }
-
-        function setupEvents() {
-            document.getElementById('btn-start').addEventListener('click', startExperience);
-            
-            const bindBtn = (id, key, val) => {
-                const el = document.getElementById(id);
-                const start = (e) => { e.preventDefault(); carState.inputs[key] = val; };
-                const end = (e) => { e.preventDefault(); carState.inputs[key] = !val; };
-                el.addEventListener('pointerdown', start);
-                el.addEventListener('pointerup', end);
-                el.addEventListener('pointerleave', end);
-            };
-
-            bindBtn('btn-gas', 'forward', true);
-            bindBtn('btn-brake', 'backward', true);
-            bindBtn('btn-left', 'left', true);
-            bindBtn('btn-right', 'right', true);
-
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-        }
-
-        async function startExperience() {
-            if (!navigator.xr) {
-                alert("O teu navegador não suporta AR. Usa o Chrome no Android.");
-                return;
-            }
-
-            const sessionInit = {
-                requiredFeatures: ['hit-test'],
-                optionalFeatures: ['dom-overlay'],
-                domOverlay: { root: document.getElementById('ui-layer') }
-            };
-
-            try {
-                const session = await navigator.xr.requestSession('immersive-ar', sessionInit);
-                renderer.xr.setReferenceSpaceType('local');
-                await renderer.xr.setSession(session);
-
-                document.getElementById('intro-screen').style.display = 'none';
-                document.getElementById('status-indicator').style.display = 'block';
-
-                const controller = renderer.xr.getController(0);
-                controller.addEventListener('select', onSelect);
-                scene.add(controller);
-
-                renderer.setAnimationLoop(renderLoop);
-            } catch (e) {
-                alert("Erro ao iniciar AR: " + e.message);
-            }
-        }
-
-        function onSelect() {
-            if (reticle.visible && !isPlaced) {
-                const pos = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
-                
-                if (carModel) {
-                    carModel.position.copy(pos);
-                    scene.add(carModel);
-                }
-                
-                if (trackModel) {
-                    trackModel.position.copy(pos);
-                    scene.add(trackModel);
-                } else {
-                    // Chão placeholder
-                    const ground = new THREE.Mesh(
-                        new THREE.CircleGeometry(2, 32),
-                        new THREE.MeshStandardMaterial({ color: 0x333333, transparent: true, opacity: 0.3 })
-                    );
-                    ground.rotation.x = -Math.PI / 2;
-                    ground.position.copy(pos);
-                    scene.add(ground);
-                }
-
-                isPlaced = true;
-                reticle.visible = false;
-                document.getElementById('status-indicator').style.display = 'none';
-                document.getElementById('ui-controls').style.display = 'block';
-            }
-        }
-
-        function updatePhysics() {
-            if (!isPlaced || !carModel) return;
-
-            // Motor
-            if (carState.inputs.forward) carState.speed += carState.acceleration;
-            else if (carState.inputs.backward) carState.speed -= carState.acceleration;
-            else carState.speed *= carState.friction;
-
-            carState.speed = Math.max(-carState.maxSpeed/2, Math.min(carState.maxSpeed, carState.speed));
-
-            // Direção
-            if (Math.abs(carState.speed) > 0.001) {
-                const turnFactor = carState.speed > 0 ? 1 : -1;
-                if (carState.inputs.left) carState.rotation += 0.05 * turnFactor;
-                if (carState.inputs.right) carState.rotation -= 0.05 * turnFactor;
-            }
-
-            // Colisões Simples (Raycast Frontal)
-            const carDir = new THREE.Vector3(0, 0, 1).applyQuaternion(carModel.quaternion);
-            if (carState.speed < 0) carDir.negate();
-            
-            raycasterFront.set(carModel.position.clone().add(new THREE.Vector3(0, 0.05, 0)), carDir);
-            const hits = raycasterFront.intersectObjects(collidables);
-
-            if (hits.length > 0 && hits[0].distance < 0.1) {
-                carState.speed *= -0.5; // Ricochete
+            // Tentar iniciar o sistema MindAR
+            const arSystem = sceneEl.systems["mindar-image-system"];
+            if (arSystem) {
+                arSystem.start();
             } else {
-                carModel.rotation.y = carState.rotation;
-                carModel.translateZ(carState.speed);
+                console.error("Sistema MindAR não encontrado.");
             }
+        });
 
-            // Manter no chão do GLB
-            if (trackModel) {
-                raycasterDown.set(carModel.position.clone().add(new THREE.Vector3(0, 1, 0)), new THREE.Vector3(0, -1, 0));
-                const floor = raycasterDown.intersectObject(trackModel, true);
-                if (floor.length > 0) carModel.position.y = floor[0].point.y;
-            }
-        }
+        // Feedback visual do tracking
+        anchor.addEventListener("targetFound", () => {
+            scanGuide.style.display = 'none';
+            uiControls.style.display = 'block';
+        });
 
-        function renderLoop(timestamp, frame) {
-            if (frame) {
-                const referenceSpace = renderer.xr.getReferenceSpace();
-                const session = frame.session;
+        anchor.addEventListener("targetLost", () => {
+            uiControls.style.display = 'none';
+            scanGuide.style.display = 'block';
+        });
 
-                if (!hitTestSourceRequested) {
-                    session.requestReferenceSpace('viewer').then(ref => {
-                        session.requestHitTestSource({ space: ref }).then(src => hitTestSource = src);
-                    });
-                    hitTestSourceRequested = true;
+        // Mapeamento de controlos táteis
+        const setupButton = (id, key, val) => {
+            const btn = document.getElementById(id);
+            const start = (e) => { e.preventDefault(); carState.inputs[key] = val; };
+            const end = (e) => { e.preventDefault(); carState.inputs[key] = !val; };
+            btn.addEventListener('pointerdown', start);
+            btn.addEventListener('pointerup', end);
+            btn.addEventListener('pointerleave', end);
+        };
+
+        setupButton('btn-gas', 'forward', true);
+        setupButton('btn-brake', 'backward', true);
+        setupButton('btn-left', 'left', true);
+        setupButton('btn-right', 'right', true);
+
+        // Componente de lógica de condução
+        AFRAME.registerComponent('car-logic', {
+            tick: function (time, timeDelta) {
+                // Só processa física se o alvo estiver visível
+                if (uiControls.style.display === 'none') return;
+
+                // Aceleração e Travagem
+                if (carState.inputs.forward) carState.speed += carState.acceleration;
+                else if (carState.inputs.backward) carState.speed -= carState.acceleration;
+                else carState.speed *= carState.friction;
+
+                // Limite de velocidade
+                carState.speed = Math.max(-carState.maxSpeed/2, Math.min(carState.maxSpeed, carState.speed));
+
+                // Rotação (Direção)
+                if (Math.abs(carState.speed) > 0.001) {
+                    const turnDir = carState.speed > 0 ? 1 : -1;
+                    if (carState.inputs.left) carState.rotation += 3 * turnDir;
+                    if (carState.inputs.right) carState.rotation -= 3 * turnDir;
                 }
 
-                if (hitTestSource && !isPlaced) {
-                    const hitResults = frame.getHitTestResults(hitTestSource);
-                    if (hitResults.length) {
-                        const hit = hitResults[0];
-                        const pose = hit.getPose(referenceSpace);
-                        reticle.visible = true;
-                        reticle.matrix.fromArray(pose.transform.matrix);
-                    } else {
-                        reticle.visible = false;
-                    }
+                // Aplicar rotação ao modelo
+                carEntity.setAttribute('rotation', { x: 0, y: carState.rotation, z: 0 });
+
+                // Calcular nova posição baseada no ângulo
+                const angleRad = (carState.rotation * Math.PI) / 180;
+                const pos = carEntity.getAttribute('position');
+                
+                const nextX = pos.x + Math.sin(angleRad) * carState.speed;
+                const nextZ = pos.z + Math.cos(angleRad) * carState.speed;
+
+                // Verificação de colisão com a borda (raio de 1.45m)
+                const distance = Math.sqrt(nextX*nextX + nextZ*nextZ);
+                if (distance < 1.45) {
+                    carEntity.setAttribute('position', { x: nextX, y: 0, z: nextZ });
+                } else {
+                    carState.speed *= -0.5; // Ricochete simples
                 }
             }
+        });
 
-            updatePhysics();
-            renderer.render(scene, camera);
-        }
+        // Adicionar o componente ao carro
+        carEntity.setAttribute('car-logic', '');
     </script>
 </body>
 </html>

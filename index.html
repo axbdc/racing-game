@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Racing Pro</title>
+    <title>AR Racing Markerless Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,21 +11,15 @@
         body { margin: 0; overflow: hidden; font-family: sans-serif; background: #000; touch-action: none; }
         canvas { display: block; }
         
-        #ar-overlay {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 100;
-            display: none;
-        }
+        #ui-layer { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
 
         #intro-screen {
-            position: fixed; inset: 0;
-            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
+            position: absolute; inset: 0;
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), 
                         url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=1000');
             background-size: cover; background-position: center;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 200; color: white; text-align: center; padding: 20px;
+            pointer-events: auto; color: white; text-align: center; padding: 20px;
         }
 
         .joy-btn {
@@ -34,42 +28,37 @@
             border-radius: 20px; display: flex; align-items: center; justify-content: center;
             user-select: none; touch-action: none;
         }
+        .joy-btn:active { background: rgba(255, 255, 255, 0.5); }
 
-        #instructions {
+        #ui-controls { position: absolute; inset: 0; display: none; pointer-events: none; }
+
+        #status-indicator {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 12px 24px;
-            border-radius: 30px; font-weight: bold; white-space: nowrap;
-        }
-
-        #error-msg {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #ef4444; color: white; padding: 15px; border-radius: 10px;
-            z-index: 300; display: none; text-align: center; width: 90%;
+            border-radius: 30px; font-weight: bold; white-space: nowrap; display: none;
         }
     </style>
 </head>
 <body>
 
-    <div id="intro-screen">
-        <h1 class="text-4xl font-black italic mb-2">AR RACING PRO</h1>
-        <p class="mb-8 text-gray-300">Compatível com Android (Chrome) e navegadores WebXR</p>
-        <button id="start-ar" class="bg-red-600 text-white px-10 py-4 rounded-full font-bold text-xl shadow-2xl active:scale-95">
-            INICIAR JOGO
-        </button>
-        <div id="ios-warning" class="mt-6 text-xs text-gray-400 hidden">
-            Nota: iOS (Safari) não suporta jogos WebXR nativamente. Usa o Android ou um browser WebXR.
+    <div id="ui-layer">
+        <!-- ECRÃ INICIAL -->
+        <div id="intro-screen">
+            <h1 class="text-5xl font-black italic mb-2 tracking-tighter">AR RACING WORLD</h1>
+            <p class="mb-8 text-gray-300">Sem marcadores. Apenas a tua mesa e o carro.</p>
+            <button id="btn-start" class="bg-red-600 text-white px-12 py-5 rounded-full font-bold text-2xl active:scale-95 shadow-2xl mb-4">
+                INICIAR JOGO
+            </button>
+            <p class="text-[10px] opacity-50 max-w-xs">Nota: Requer Android (Chrome) e HTTPS. No iPhone, use o modo Simulação se o AR falhar.</p>
         </div>
-    </div>
 
-    <div id="error-msg"></div>
+        <!-- MENSAGENS -->
+        <div id="status-indicator">Move o telemóvel para detetar superfícies...</div>
 
-    <!-- Este contentor será a interface durante a AR -->
-    <div id="ar-overlay">
-        <div id="instructions">Aponta para uma superfície plana</div>
-        
-        <div id="ui-controls" class="absolute inset-0 pointer-events-none">
-            <!-- Direção -->
-            <div class="absolute bottom-10 left-10 flex gap-4">
+        <!-- CONTROLOS (HORIZONTAL) -->
+        <div id="ui-controls">
+            <!-- Esquerda: Setas -->
+            <div class="absolute bottom-8 left-8 flex gap-4">
                 <div id="btn-left" class="joy-btn w-20 h-20">
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
                 </div>
@@ -77,175 +66,239 @@
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
                 </div>
             </div>
-            <!-- Pedais -->
-            <div class="absolute bottom-10 right-10 flex gap-4 items-end">
-                <div id="btn-brake" class="joy-btn w-20 h-24 flex-col text-[10px] font-bold text-red-300">TRAVAR</div>
-                <div id="btn-gas" class="joy-btn w-24 h-32 flex-col text-xs font-bold bg-green-600/20 text-green-300">ACELERAR</div>
+            <!-- Direita: Pedais -->
+            <div class="absolute bottom-8 right-8 flex gap-6 items-end">
+                <div id="btn-brake" class="joy-btn w-24 h-24 flex-col text-xs font-bold text-red-400">TRAVAR</div>
+                <div id="btn-gas" class="joy-btn w-28 h-36 flex-col text-sm font-bold bg-green-600/20 text-green-400">ACELERAR</div>
             </div>
         </div>
     </div>
 
     <script>
+        // --- CONFIGURAÇÃO DE LINKS ---
         const ASSETS = {
             car: 'car.glb',
-            track: 'circuito.glb' 
+            track: 'circuito.glb' // Adiciona o teu circuito GLB aqui
         };
 
         let scene, camera, renderer, reticle, carModel, trackModel;
         let hitTestSource = null;
         let hitTestSourceRequested = false;
         let isPlaced = false;
+        let collidables = [];
 
         const carState = {
             speed: 0, rotation: 0,
-            maxSpeed: 0.04, acceleration: 0.0015, friction: 0.96,
+            maxSpeed: 0.05, acceleration: 0.002, friction: 0.96,
             inputs: { forward: false, backward: false, left: false, right: false }
         };
 
-        // Detetar iOS
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS) document.getElementById('ios-warning').classList.remove('hidden');
+        const raycasterDown = new THREE.Raycaster();
+        const raycasterFront = new THREE.Raycaster();
+
+        init();
 
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-            
+
+            scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1));
+            const sun = new THREE.DirectionalLight(0xffffff, 1);
+            sun.position.set(5, 10, 7);
+            scene.add(sun);
+
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.xr.enabled = true;
             document.body.appendChild(renderer.domElement);
 
-            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-            scene.add(light);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(5, 10, 7);
-            scene.add(dirLight);
-
-            // Retícula
+            // Retícula (O alvo que aparece no chão)
             reticle = new THREE.Mesh(
-                new THREE.RingGeometry(0.07, 0.1, 32).rotateX(-Math.PI/2),
-                new THREE.MeshBasicMaterial()
+                new THREE.RingGeometry(0.08, 0.1, 32).rotateX(-Math.PI / 2),
+                new THREE.MeshBasicMaterial({ color: 0x00ff00 })
             );
             reticle.matrixAutoUpdate = false;
             reticle.visible = false;
             scene.add(reticle);
 
-            // Carregar Modelo do Carro
-            new THREE.GLTFLoader().load(ASSETS.car, (gltf) => {
+            loadModels();
+            setupEvents();
+        }
+
+        function loadModels() {
+            const loader = new THREE.GLTFLoader();
+            
+            // Carregar Carro
+            loader.load(ASSETS.car, (gltf) => {
                 carModel = gltf.scene;
                 carModel.scale.set(0.1, 0.1, 0.1);
             });
 
-            setupControls();
-        }
-
-        async function startAR() {
-            if (!navigator.xr) {
-                showError("O seu navegador não suporta WebXR (Realidade Aumentada). No Android use o Chrome.");
-                return;
-            }
-
-            // FIX: Pedir o mínimo possível para evitar erros de configuração
-            const sessionInit = {
-                optionalFeatures: ['hit-test', 'dom-overlay'],
-                domOverlay: { root: document.getElementById('ar-overlay') }
-            };
-
-            try {
-                const session = await navigator.xr.requestSession('immersive-ar', sessionInit);
-                await renderer.xr.setSession(session);
-                
-                document.getElementById('intro-screen').style.display = 'none';
-                document.getElementById('ar-overlay').style.display = 'block';
-
-                session.addEventListener('end', () => location.reload());
-
-                // Clique para colocar o carro
-                renderer.xr.getController(0).addEventListener('select', () => {
-                    if (reticle.visible && !isPlaced) {
-                        carModel.position.setFromMatrixPosition(reticle.matrix);
-                        scene.add(carModel);
-                        isPlaced = true;
-                        reticle.visible = false;
-                        document.getElementById('instructions').innerText = "Conduz o carro!";
-                        setTimeout(() => document.getElementById('instructions').style.display = 'none', 3000);
-                    }
+            // Carregar Pista
+            if (ASSETS.track) {
+                loader.load(ASSETS.track, (gltf) => {
+                    trackModel = gltf.scene;
+                    trackModel.traverse(node => {
+                        if (node.isMesh && (node.name.includes("Wall") || node.name.includes("Barrier"))) {
+                            collidables.push(node);
+                        }
+                    });
                 });
-
-                renderer.setAnimationLoop(render);
-            } catch (e) {
-                showError("Erro ao iniciar AR: " + e.message);
             }
         }
 
-        function setupControls() {
-            const add = (id, key, val) => {
+        function setupEvents() {
+            document.getElementById('btn-start').addEventListener('click', startExperience);
+            
+            const bindBtn = (id, key, val) => {
                 const el = document.getElementById(id);
                 const start = (e) => { e.preventDefault(); carState.inputs[key] = val; };
                 const end = (e) => { e.preventDefault(); carState.inputs[key] = !val; };
                 el.addEventListener('pointerdown', start);
                 el.addEventListener('pointerup', end);
                 el.addEventListener('pointerleave', end);
-                el.addEventListener('touchstart', start, {passive: false});
-                el.addEventListener('touchend', end, {passive: false});
             };
-            add('btn-gas', 'forward', true);
-            add('btn-brake', 'backward', true);
-            add('btn-left', 'left', true);
-            add('btn-right', 'right', true);
+
+            bindBtn('btn-gas', 'forward', true);
+            bindBtn('btn-brake', 'backward', true);
+            bindBtn('btn-left', 'left', true);
+            bindBtn('btn-right', 'right', true);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
         }
 
-        function showError(msg) {
-            const el = document.getElementById('error-msg');
-            el.innerText = msg;
-            el.style.display = 'block';
+        async function startExperience() {
+            if (!navigator.xr) {
+                alert("O teu navegador não suporta AR. Usa o Chrome no Android.");
+                return;
+            }
+
+            const sessionInit = {
+                requiredFeatures: ['hit-test'],
+                optionalFeatures: ['dom-overlay'],
+                domOverlay: { root: document.getElementById('ui-layer') }
+            };
+
+            try {
+                const session = await navigator.xr.requestSession('immersive-ar', sessionInit);
+                renderer.xr.setReferenceSpaceType('local');
+                await renderer.xr.setSession(session);
+
+                document.getElementById('intro-screen').style.display = 'none';
+                document.getElementById('status-indicator').style.display = 'block';
+
+                const controller = renderer.xr.getController(0);
+                controller.addEventListener('select', onSelect);
+                scene.add(controller);
+
+                renderer.setAnimationLoop(renderLoop);
+            } catch (e) {
+                alert("Erro ao iniciar AR: " + e.message);
+            }
+        }
+
+        function onSelect() {
+            if (reticle.visible && !isPlaced) {
+                const pos = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+                
+                if (carModel) {
+                    carModel.position.copy(pos);
+                    scene.add(carModel);
+                }
+                
+                if (trackModel) {
+                    trackModel.position.copy(pos);
+                    scene.add(trackModel);
+                } else {
+                    // Chão placeholder
+                    const ground = new THREE.Mesh(
+                        new THREE.CircleGeometry(2, 32),
+                        new THREE.MeshStandardMaterial({ color: 0x333333, transparent: true, opacity: 0.3 })
+                    );
+                    ground.rotation.x = -Math.PI / 2;
+                    ground.position.copy(pos);
+                    scene.add(ground);
+                }
+
+                isPlaced = true;
+                reticle.visible = false;
+                document.getElementById('status-indicator').style.display = 'none';
+                document.getElementById('ui-controls').style.display = 'block';
+            }
         }
 
         function updatePhysics() {
             if (!isPlaced || !carModel) return;
+
+            // Motor
             if (carState.inputs.forward) carState.speed += carState.acceleration;
             else if (carState.inputs.backward) carState.speed -= carState.acceleration;
             else carState.speed *= carState.friction;
 
             carState.speed = Math.max(-carState.maxSpeed/2, Math.min(carState.maxSpeed, carState.speed));
 
+            // Direção
             if (Math.abs(carState.speed) > 0.001) {
-                const turn = carState.speed > 0 ? 1 : -1;
-                if (carState.inputs.left) carState.rotation += 0.04 * turn;
-                if (carState.inputs.right) carState.rotation -= 0.04 * turn;
+                const turnFactor = carState.speed > 0 ? 1 : -1;
+                if (carState.inputs.left) carState.rotation += 0.05 * turnFactor;
+                if (carState.inputs.right) carState.rotation -= 0.05 * turnFactor;
             }
-            carModel.rotation.y = carState.rotation;
-            carModel.translateZ(carState.speed);
+
+            // Colisões Simples (Raycast Frontal)
+            const carDir = new THREE.Vector3(0, 0, 1).applyQuaternion(carModel.quaternion);
+            if (carState.speed < 0) carDir.negate();
+            
+            raycasterFront.set(carModel.position.clone().add(new THREE.Vector3(0, 0.05, 0)), carDir);
+            const hits = raycasterFront.intersectObjects(collidables);
+
+            if (hits.length > 0 && hits[0].distance < 0.1) {
+                carState.speed *= -0.5; // Ricochete
+            } else {
+                carModel.rotation.y = carState.rotation;
+                carModel.translateZ(carState.speed);
+            }
+
+            // Manter no chão do GLB
+            if (trackModel) {
+                raycasterDown.set(carModel.position.clone().add(new THREE.Vector3(0, 1, 0)), new THREE.Vector3(0, -1, 0));
+                const floor = raycasterDown.intersectObject(trackModel, true);
+                if (floor.length > 0) carModel.position.y = floor[0].point.y;
+            }
         }
 
-        function render(timestamp, frame) {
+        function renderLoop(timestamp, frame) {
             if (frame) {
-                const refSpace = renderer.xr.getReferenceSpace();
+                const referenceSpace = renderer.xr.getReferenceSpace();
                 const session = frame.session;
+
                 if (!hitTestSourceRequested) {
                     session.requestReferenceSpace('viewer').then(ref => {
                         session.requestHitTestSource({ space: ref }).then(src => hitTestSource = src);
                     });
                     hitTestSourceRequested = true;
                 }
+
                 if (hitTestSource && !isPlaced) {
-                    const results = frame.getHitTestResults(hitTestSource);
-                    if (results.length) {
-                        const hit = results[0];
+                    const hitResults = frame.getHitTestResults(hitTestSource);
+                    if (hitResults.length) {
+                        const hit = hitResults[0];
+                        const pose = hit.getPose(referenceSpace);
                         reticle.visible = true;
-                        reticle.matrix.fromArray(hit.getPose(refSpace).transform.matrix);
+                        reticle.matrix.fromArray(pose.transform.matrix);
                     } else {
                         reticle.visible = false;
                     }
                 }
             }
+
             updatePhysics();
             renderer.render(scene, camera);
         }
-
-        init();
-        document.getElementById('start-ar').addEventListener('click', startAR);
     </script>
 </body>
 </html>

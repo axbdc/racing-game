@@ -11,68 +11,77 @@
         body { margin: 0; overflow: hidden; font-family: sans-serif; background: #000; touch-action: none; }
         canvas { display: block; }
         
+        #ar-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+
         #intro-screen {
             position: fixed; inset: 0;
-            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
                         url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=1000');
             background-size: cover; background-position: center;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100; color: white; text-align: center; padding: 20px;
+            z-index: 200; color: white; text-align: center; padding: 20px;
         }
 
-        #ui-controls {
-            position: fixed; inset: 0; pointer-events: none; display: none; z-index: 50;
-        }
         .joy-btn {
-            pointer-events: auto; background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(8px); border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            pointer-events: auto; background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px; display: flex; align-items: center; justify-content: center;
             user-select: none; touch-action: none;
         }
-        .joy-btn:active { background: rgba(255, 255, 255, 0.4); }
 
         #instructions {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 12px 24px;
-            border-radius: 30px; z-index: 60; display: none; font-weight: bold;
-            white-space: nowrap;
+            border-radius: 30px; font-weight: bold; white-space: nowrap;
         }
 
         #error-msg {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: #ef4444; color: white; padding: 10px 20px;
-            border-radius: 10px; z-index: 1000; display: none; text-align: center;
-            width: 80%;
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #ef4444; color: white; padding: 15px; border-radius: 10px;
+            z-index: 300; display: none; text-align: center; width: 90%;
         }
     </style>
 </head>
 <body>
 
     <div id="intro-screen">
-        <h1 class="text-5xl font-black italic mb-2 tracking-tighter">AR RACING PRO</h1>
-        <p class="mb-8 text-gray-300">Conduz o teu carro favorito na tua mesa!</p>
-        <button id="start-ar" class="bg-red-600 hover:bg-red-700 text-white px-10 py-4 rounded-full font-bold text-xl transition-all active:scale-95 shadow-xl">
-            INICIAR EXPERIÊNCIA
+        <h1 class="text-4xl font-black italic mb-2">AR RACING PRO</h1>
+        <p class="mb-8 text-gray-300">Compatível com Android (Chrome) e navegadores WebXR</p>
+        <button id="start-ar" class="bg-red-600 text-white px-10 py-4 rounded-full font-bold text-xl shadow-2xl active:scale-95">
+            INICIAR JOGO
         </button>
-        <p id="support-check" class="mt-4 text-sm text-yellow-400 font-medium"></p>
+        <div id="ios-warning" class="mt-6 text-xs text-gray-400 hidden">
+            Nota: iOS (Safari) não suporta jogos WebXR nativamente. Usa o Android ou um browser WebXR.
+        </div>
     </div>
 
     <div id="error-msg"></div>
 
-    <div id="instructions">Aponta para o chão/mesa para detetar superfície</div>
-
-    <div id="ui-controls">
-        <div class="absolute bottom-6 left-6 flex gap-4">
-            <div id="btn-left" class="joy-btn w-20 h-20">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+    <!-- Este contentor será a interface durante a AR -->
+    <div id="ar-overlay">
+        <div id="instructions">Aponta para uma superfície plana</div>
+        
+        <div id="ui-controls" class="absolute inset-0 pointer-events-none">
+            <!-- Direção -->
+            <div class="absolute bottom-10 left-10 flex gap-4">
+                <div id="btn-left" class="joy-btn w-20 h-20">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+                </div>
+                <div id="btn-right" class="joy-btn w-20 h-20">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                </div>
             </div>
-            <div id="btn-right" class="joy-btn w-20 h-20">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+            <!-- Pedais -->
+            <div class="absolute bottom-10 right-10 flex gap-4 items-end">
+                <div id="btn-brake" class="joy-btn w-20 h-24 flex-col text-[10px] font-bold text-red-300">TRAVAR</div>
+                <div id="btn-gas" class="joy-btn w-24 h-32 flex-col text-xs font-bold bg-green-600/20 text-green-300">ACELERAR</div>
             </div>
-        </div>
-        <div class="absolute bottom-6 right-6 flex gap-4 items-end">
-            <div id="btn-brake" class="joy-btn w-20 h-24 flex-col text-xs font-bold text-red-200">TRAVAR</div>
-            <div id="btn-gas" class="joy-btn w-24 h-32 flex-col text-sm font-bold bg-green-600/20 text-green-200">GAS</div>
         </div>
     </div>
 
@@ -82,164 +91,119 @@
             track: 'circuito.glb' 
         };
 
-        let scene, camera, renderer, controller, reticle;
+        let scene, camera, renderer, reticle, carModel, trackModel;
         let hitTestSource = null;
         let hitTestSourceRequested = false;
-        let carModel, trackModel;
         let isPlaced = false;
-        let collidables = []; 
 
         const carState = {
-            speed: 0,
-            rotation: 0,
-            maxSpeed: 0.04,
-            acceleration: 0.0012,
-            friction: 0.96,
+            speed: 0, rotation: 0,
+            maxSpeed: 0.04, acceleration: 0.0015, friction: 0.96,
             inputs: { forward: false, backward: false, left: false, right: false }
         };
 
-        const downRay = new THREE.Raycaster();
-        const frontRay = new THREE.Raycaster();
+        // Detetar iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS) document.getElementById('ios-warning').classList.remove('hidden');
 
-        init();
-
-        function showError(msg) {
-            const el = document.getElementById('error-msg');
-            el.innerText = msg;
-            el.style.display = 'block';
-            console.error("Game Error:", msg);
-            setTimeout(() => el.style.display = 'none', 10000);
-        }
-
-        async function init() {
-            if ('xr' in navigator) {
-                try {
-                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
-                    if (!supported) {
-                        document.getElementById('support-check').innerText = "Dispositivo não compatível com AR.";
-                    }
-                } catch (e) {
-                    document.getElementById('support-check').innerText = "Erro ao verificar suporte AR.";
-                }
-            } else {
-                document.getElementById('support-check').innerText = "WebXR não disponível neste navegador.";
-            }
-
+        function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-            scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(5, 10, 7);
-            scene.add(dirLight);
-
+            
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.xr.enabled = true;
             document.body.appendChild(renderer.domElement);
 
-            reticle = new THREE.Group();
-            reticle.add(new THREE.Mesh(new THREE.RingGeometry(0.08, 0.1, 32).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({ color: 0x00ff00 })));
+            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            scene.add(light);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+
+            // Retícula
+            reticle = new THREE.Mesh(
+                new THREE.RingGeometry(0.07, 0.1, 32).rotateX(-Math.PI/2),
+                new THREE.MeshBasicMaterial()
+            );
             reticle.matrixAutoUpdate = false;
             reticle.visible = false;
             scene.add(reticle);
 
-            loadModels();
-
-            document.getElementById('start-ar').addEventListener('click', startARSession);
-            setupControls();
-            window.addEventListener('resize', onWindowResize);
-        }
-
-        function loadModels() {
-            const loader = new THREE.GLTFLoader();
-            loader.load(ASSETS.car, (gltf) => {
+            // Carregar Modelo do Carro
+            new THREE.GLTFLoader().load(ASSETS.car, (gltf) => {
                 carModel = gltf.scene;
                 carModel.scale.set(0.1, 0.1, 0.1);
-            }, undefined, (e) => showError("Erro ao carregar o carro."));
+            });
 
-            if (ASSETS.track !== '') {
-                loader.load(ASSETS.track, (gltf) => {
-                    trackModel = gltf.scene;
-                    trackModel.traverse(node => {
-                        if (node.isMesh) {
-                            if (node.name.toLowerCase().includes('wall') || node.name.toLowerCase().includes('barrier')) {
-                                collidables.push(node);
-                            }
-                        }
-                    });
-                }, undefined, (e) => showError("Erro ao carregar a pista."));
-            }
+            setupControls();
         }
 
-        async function startARSession() {
-            // FIX: Removido 'local' de requiredFeatures. Agora os required são vazios.
-            // Tudo o resto passa a ser opcional para garantir que a sessão abre independentemente do hardware.
-            const sessionInit = { 
-                requiredFeatures: [], 
-                optionalFeatures: ['local', 'local-floor', 'hit-test', 'dom-overlay'],
-                domOverlay: { root: document.body }
+        async function startAR() {
+            if (!navigator.xr) {
+                showError("O seu navegador não suporta WebXR (Realidade Aumentada). No Android use o Chrome.");
+                return;
+            }
+
+            // FIX: Pedir o mínimo possível para evitar erros de configuração
+            const sessionInit = {
+                optionalFeatures: ['hit-test', 'dom-overlay'],
+                domOverlay: { root: document.getElementById('ar-overlay') }
             };
-            
+
             try {
                 const session = await navigator.xr.requestSession('immersive-ar', sessionInit);
-                
-                // Primeiro tentamos local-floor, se falhar usamos local
-                try {
-                    await renderer.xr.setReferenceSpaceType('local-floor');
-                } catch (e) {
-                    await renderer.xr.setReferenceSpaceType('local');
-                }
-                
                 await renderer.xr.setSession(session);
-
-                document.getElementById('intro-screen').style.display = 'none';
-                document.getElementById('instructions').style.display = 'block';
                 
-                controller = renderer.xr.getController(0);
-                controller.addEventListener('select', onSelect);
-                scene.add(controller);
+                document.getElementById('intro-screen').style.display = 'none';
+                document.getElementById('ar-overlay').style.display = 'block';
+
+                session.addEventListener('end', () => location.reload());
+
+                // Clique para colocar o carro
+                renderer.xr.getController(0).addEventListener('select', () => {
+                    if (reticle.visible && !isPlaced) {
+                        carModel.position.setFromMatrixPosition(reticle.matrix);
+                        scene.add(carModel);
+                        isPlaced = true;
+                        reticle.visible = false;
+                        document.getElementById('instructions').innerText = "Conduz o carro!";
+                        setTimeout(() => document.getElementById('instructions').style.display = 'none', 3000);
+                    }
+                });
 
                 renderer.setAnimationLoop(render);
-            } catch (e) { 
-                console.error("WebXR Session Error:", e);
-                showError("Erro AR: " + e.message + ". Certifica-te que o Chrome tem permissão de câmara e o dispositivo suporta ARCore.");
+            } catch (e) {
+                showError("Erro ao iniciar AR: " + e.message);
             }
         }
 
-        function onSelect() {
-            if (reticle.visible && !isPlaced) {
-                const pos = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
-                
-                if (carModel) {
-                    carModel.position.copy(pos);
-                    scene.add(carModel);
-                }
-                
-                if (trackModel) {
-                    trackModel.position.copy(pos);
-                    scene.add(trackModel);
-                } else {
-                    const ground = new THREE.Mesh(
-                        new THREE.CircleGeometry(2, 32),
-                        new THREE.MeshStandardMaterial({ color: 0x444444, transparent: true, opacity: 0.2 })
-                    );
-                    ground.rotation.x = -Math.PI / 2;
-                    ground.position.copy(pos);
-                    scene.add(ground);
-                }
+        function setupControls() {
+            const add = (id, key, val) => {
+                const el = document.getElementById(id);
+                const start = (e) => { e.preventDefault(); carState.inputs[key] = val; };
+                const end = (e) => { e.preventDefault(); carState.inputs[key] = !val; };
+                el.addEventListener('pointerdown', start);
+                el.addEventListener('pointerup', end);
+                el.addEventListener('pointerleave', end);
+                el.addEventListener('touchstart', start, {passive: false});
+                el.addEventListener('touchend', end, {passive: false});
+            };
+            add('btn-gas', 'forward', true);
+            add('btn-brake', 'backward', true);
+            add('btn-left', 'left', true);
+            add('btn-right', 'right', true);
+        }
 
-                isPlaced = true;
-                reticle.visible = false;
-                document.getElementById('instructions').style.display = 'none';
-                document.getElementById('ui-controls').style.display = 'block';
-            }
+        function showError(msg) {
+            const el = document.getElementById('error-msg');
+            el.innerText = msg;
+            el.style.display = 'block';
         }
 
         function updatePhysics() {
             if (!isPlaced || !carModel) return;
-
             if (carState.inputs.forward) carState.speed += carState.acceleration;
             else if (carState.inputs.backward) carState.speed -= carState.acceleration;
             else carState.speed *= carState.friction;
@@ -247,95 +211,41 @@
             carState.speed = Math.max(-carState.maxSpeed/2, Math.min(carState.maxSpeed, carState.speed));
 
             if (Math.abs(carState.speed) > 0.001) {
-                const turnFactor = carState.speed > 0 ? 1 : -1;
-                if (carState.inputs.left) carState.rotation += 0.04 * turnFactor;
-                if (carState.inputs.right) carState.rotation -= 0.04 * turnFactor;
+                const turn = carState.speed > 0 ? 1 : -1;
+                if (carState.inputs.left) carState.rotation += 0.04 * turn;
+                if (carState.inputs.right) carState.rotation -= 0.04 * turn;
             }
-
-            const direction = new THREE.Vector3(0, 0, 1).applyQuaternion(carModel.quaternion);
-            if (carState.speed < 0) direction.negate();
-
-            frontRay.set(carModel.position.clone().add(new THREE.Vector3(0,0.02,0)), direction);
-            const wallIntersections = frontRay.intersectObjects(collidables);
-
-            if (wallIntersections.length > 0 && wallIntersections[0].distance < 0.05) {
-                carState.speed = 0;
-            } else {
-                carModel.rotation.y = carState.rotation;
-                carModel.translateZ(carState.speed);
-            }
-
-            if (trackModel) {
-                downRay.set(carModel.position.clone().add(new THREE.Vector3(0, 0.5, 0)), new THREE.Vector3(0, -1, 0));
-                const floorIntersections = downRay.intersectObject(trackModel, true);
-                if (floorIntersections.length > 0) {
-                    carModel.position.y = floorIntersections[0].point.y;
-                }
-            }
-        }
-
-        function setupControls() {
-            const addEvent = (id, key, val) => {
-                const el = document.getElementById(id);
-                const handleDown = (e) => {
-                    e.preventDefault();
-                    carState.inputs[key] = val;
-                };
-                const handleUp = (e) => {
-                    e.preventDefault();
-                    carState.inputs[key] = !val;
-                };
-                el.addEventListener('pointerdown', handleDown);
-                el.addEventListener('pointerup', handleUp);
-                el.addEventListener('pointerleave', handleUp);
-                el.addEventListener('touchstart', handleDown, {passive: false});
-                el.addEventListener('touchend', handleUp, {passive: false});
-            };
-            addEvent('btn-gas', 'forward', true);
-            addEvent('btn-brake', 'backward', true);
-            addEvent('btn-left', 'left', true);
-            addEvent('btn-right', 'right', true);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            carModel.rotation.y = carState.rotation;
+            carModel.translateZ(carState.speed);
         }
 
         function render(timestamp, frame) {
             if (frame) {
+                const refSpace = renderer.xr.getReferenceSpace();
                 const session = frame.session;
-                const referenceSpace = renderer.xr.getReferenceSpace();
-                
-                if (!hitTestSourceRequested && session) {
+                if (!hitTestSourceRequested) {
                     session.requestReferenceSpace('viewer').then(ref => {
-                        session.requestHitTestSource({ space: ref }).then(src => {
-                            hitTestSource = src;
-                        }).catch(err => {
-                            console.warn("Hit Test não suportado neste dispositivo.");
-                        });
+                        session.requestHitTestSource({ space: ref }).then(src => hitTestSource = src);
                     });
                     hitTestSourceRequested = true;
                 }
-
                 if (hitTestSource && !isPlaced) {
-                    const hitResults = frame.getHitTestResults(hitTestSource);
-                    if (hitResults.length) {
-                        const hit = hitResults[0];
-                        const pose = hit.getPose(referenceSpace);
-                        if (pose) {
-                            reticle.visible = true;
-                            reticle.matrix.fromArray(pose.transform.matrix);
-                        }
-                    } else { 
-                        reticle.visible = false; 
+                    const results = frame.getHitTestResults(hitTestSource);
+                    if (results.length) {
+                        const hit = results[0];
+                        reticle.visible = true;
+                        reticle.matrix.fromArray(hit.getPose(refSpace).transform.matrix);
+                    } else {
+                        reticle.visible = false;
                     }
                 }
             }
             updatePhysics();
             renderer.render(scene, camera);
         }
+
+        init();
+        document.getElementById('start-ar').addEventListener('click', startAR);
     </script>
 </body>
 </html>
